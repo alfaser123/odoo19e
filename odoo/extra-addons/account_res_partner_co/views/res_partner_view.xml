@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+	
+	
+	
+			<!-- <record id="action_partner_supplier_form_inherit_ctx" model="ir.actions.act_window"> -->
+				<!-- <field name="inherit_id" ref="base.action_partner_supplier_form"/> -->
+				<!-- <field name="context" eval="dict(context or {}, skip_validation=True)"/> -->
+			<!-- </record> -->
+			
+			<!-- <record id="action_partner_customer_form_inherit_ctx" model="ir.actions.act_window"> -->
+				<!-- <field name="inherit_id" ref="base.action_partner_customer_form"/> -->
+				<!-- <field name="context" eval="dict(context or {}, skip_validation=True)"/> -->
+			<!-- </record> -->
+			
+			<!-- <record id="action_partner_form_inherit_ctx" model="ir.actions.act_window"> -->
+				<!-- <field name="inherit_id" ref="base.action_partner_form"/> -->
+				<!-- <field name="context" eval="dict(context or {}, skip_validation=True)"/> -->
+			<!-- </record> -->
+ 
+			<record id="account.res_partner_action_supplier" model="ir.actions.act_window">
+				<field name="context">
+					{'res_partner_search_mode': 'supplier', 'default_is_company': True, 'skip_validation': True}
+				</field>
+			</record>
+			
+
+			<record id="account.res_partner_action_customer" model="ir.actions.act_window">
+				<field name="context">
+					{'search_default_customer': 1,'res_partner_search_mode': 'customer', 'default_is_company': True, 'default_customer_rank': 1, 'skip_validation': True}
+				</field>
+			</record>
+
+			<record id="contacts.action_contacts" model="ir.actions.act_window">
+				<field name="context">
+					{'default_is_company': True, 'skip_validation': True}
+				</field>
+			</record>
+				
+	
+		<record model="ir.ui.view" id="view_partner_property_form_extended_form">
+			<field name="name">res.partner.property.form.inherit.extended.form</field>
+			<field name="model">res.partner</field>
+			<field name="inherit_id" ref="base.view_partner_form"/>
+			<field name="arch" type="xml">
+
+
+			<xpath expr="//field[@name='vat']" position="attributes">
+				  <attribute name="invisible">0</attribute>
+			</xpath>
+
+
+			<xpath expr="//span[@name='address_name']/following-sibling::div[contains(@class, 'o_address_format')]/field[@name='street']" position="attributes">
+				<attribute name="required">apor_firstname_aportes</attribute>
+			</xpath>
+
+			<xpath expr="//span[@name='address_name']/following-sibling::div[contains(@class, 'o_address_format')]/field[@name='city']" position="attributes">
+				<attribute name="required">apor_firstname_aportes</attribute>
+			</xpath>
+
+			<xpath expr="//span[@name='address_name']/following-sibling::div[contains(@class, 'o_address_format')]/field[@name='state_id']" position="attributes">
+				<attribute name="required">apor_firstname_aportes</attribute>
+			</xpath>
+
+			<!-- <xpath expr="//span[@name='address_name']/following-sibling::div[contains(@class, 'o_address_format')]/field[@name='zip']" position="attributes"> -->
+				<!-- <attribute name="required">1</attribute> -->
+			<!-- </xpath> -->
+
+			<xpath expr="//span[@name='address_name']/following-sibling::div[contains(@class, 'o_address_format')]/div[@name='partner_address_country']/field[@name='country_id']" position="attributes">
+				<attribute name="required">apor_firstname_aportes</attribute>
+			</xpath>
+			
+			
+			<xpath expr="//span[@name='address_name']" position="before">
+								<!-- <field name="vat"/> -->
+								<field name="ref"  string='Num_id'/>
+								<field name="dv" readonly="1"     force_save="1"/>
+								<field name="firstname"  required="apor_firstname_aportes"  />
+								<field name="middlename" invisible="is_company"/>
+								<field name="lastname" invisible="is_company"/>
+								<field name="othername" invisible="is_company"/>
+			</xpath>
+
+
+
+
+
+
+				
+			<xpath expr="//notebook/page[last()]" position="after">
+				<page name="aport_partner_info" string="Validac Apor/Subs">
+					
+						<div class="text-muted">
+							Obtener información:
+						</div>
+						
+
+												
+
+						<button
+								name="button_aportes_refresh_data"
+								type="object"
+								class="btn-link w-auto"
+								>
+								
+							<i title="Update data" role="img" aria-label="Update Data"
+							   class="fa fa-fw fa-refresh"/>
+						</button>
+					
+						<!-- <button -->
+								<!-- name=" button_insert_from_aportes_data" -->
+								<!-- type="object" -->
+								<!-- class="btn-link w-auto" -->
+								<!-- > -->
+								
+							<!-- <i title="Update data" role="img" aria-label="Update Data" -->
+							   <!-- class="fa fa-fw fa-refresh"/> -->
+						<!-- </button> -->
+						<button
+							name="button_insert_from_aportes_data"
+							type="object"
+							string="Transferir datos"
+							class="btn btn-primary"
+							icon="fa-exchange"
+							invisible="not apor_relation_withafil"
+							help="Transferir información desde aportes"
+						/>
+					
+					
+						<group name="container_row_2">
+
+							<group name="misc" string="Misc">
+
+								<field name="apor_is_benefic" readonly="1" force_save="1"/>
+								<field name="apor_relation_withafil" readonly="1" force_save="1"/>
+								<field name="apor_firstname_aportes" readonly="1" force_save="1"/>
+								<field name="apor_middlename" readonly="1" force_save="1"/>
+								<field name="apor_lastname" readonly="1" force_save="1"/>
+								<field name="apor_othername" readonly="1" force_save="1"/>
+								<field name="apor_type_doc" readonly="1" force_save="1"/>
+								
+
+								<field name="apor_categorias_id" readonly="1" force_save="1"/>
+								
+								<field name="apor_email" readonly="1" force_save="1"/>
+								<field name="apor_address" readonly="1" force_save="1"/>
+								<field name="apor_phone" readonly="1" force_save="1"/>
+								<field name="apor_num_afil_ppal" readonly="1" force_save="1"/>
+								<field name="last_date_report" readonly="1" force_save="1"   options="{'format': 'd MMMM y'}"/>
+							</group>
+								
+						</group>
+		
+				</page>
+			</xpath>
+
+
+
+            <!-- <field name="type" position="after"> -->
+
+            <!-- </field> -->
+			
+			
+            <!-- <field name="state_id" position="attributes"> -->
+              <!-- <attribute name="required">1</attribute> -->
+            <!-- </field> -->
+            <!-- <field name="country_id" position="attributes"> -->
+              <!-- <attribute name="required">1</attribute> -->
+            <!-- </field> -->
+			
+			<!-- <xpath expr="//field[@name='name']"  position="replace"> -->
+                  <!-- <field name="name" default_focus="1" placeholder="Name" attrs="{'required' : [('type', '=', 'contact')] , 'readonly' : False}"/> -->
+            <!-- </xpath> -->
+          </field>
+        </record>
+
+
+
+		
+			
+        <!-- explicit list view definition -->
+        <!-- <record model="ir.ui.view" id="res_partner_city_form"> -->
+          <!-- <field name="name">res.partner.city.form</field> -->
+          <!-- <field name="inherit_id" ref="base.view_partner_form" /> -->
+          <!-- <field name="model">res.partner</field> -->
+          <!-- <field name="arch" type="xml"> -->
+    
+            <!-- <field name="city" position="replace"> -->
+              <!-- <field name="city_id" placeholder="City" class="o_address_city" options="{&quot;no_open&quot;: True, 'no_create': True}" on_change="onchange_city(city_id)" attrs="{'readonly': [('type', '=', 'contact'),('parent_id', '!=', False)]}"/> -->
+              <!-- <field name="city" invisible="1"/> -->
+            <!-- </field> -->
+            <!-- <xpath expr="//notebook/page[1]/field/kanban/field[@name='city']" position="replace"> -->
+              <!-- <field name="city_id" placeholder="City" class="o_address_city" options="{&quot;no_open&quot;: True, 'no_create': True}" on_change="onchange_city(city_id)"/> -->
+              <!-- <field name="city" invisible="1"/> -->
+            <!-- </xpath> -->
+            <!-- <xpath expr="//notebook/page[1]/field/form/sheet/group/group/div/div/field[@name='city']" position="replace"> -->
+              <!-- <field name="city_id"   placeholder="City" class="o_address_city" options="{&quot;no_open&quot;: True, 'no_create': True}" on_change="onchange_city(city_id)"/> -->
+              <!-- <field name="city" invisible="1"/> -->
+            <!-- </xpath> -->
+          <!-- </field> -->
+        <!-- </record> -->
+	
+
+	
+        <!-- explicit list view definition -->
+        <record model="ir.ui.view" id="res_partner_form_inherit_dian">
+          <field name="name">res.partner.form.inherit.dian</field>
+          <field name="inherit_id" ref="l10n_latam_base.view_partner_latam_form" />
+          <field name="model">res.partner</field>
+          <field name="arch" type="xml">
+            <field name="l10n_latam_identification_type_id" position="after">
+                <group invisible="not l10n_co_dian_enable_update_data">
+				    <field name="name_dian"/>   
+                    <field name="email_dian"/> 
+				</group>
+            </field>       
+          </field>
+        </record>	   
+		
+	
+		
+    </data>
+</odoo>

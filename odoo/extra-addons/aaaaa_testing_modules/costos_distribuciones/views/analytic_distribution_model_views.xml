@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_account_analytic_distribution_model_form_abc" model="ir.ui.view">
+        <field name="name">account.analytic.distribution.model.form.abc</field>
+        <field name="model">account.analytic.distribution.model</field>
+		<field name="inherit_id" ref="analytic.account_analytic_distribution_model_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='analytic_distribution']" position="after">
+                <field name="abc_distribution_account_map" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

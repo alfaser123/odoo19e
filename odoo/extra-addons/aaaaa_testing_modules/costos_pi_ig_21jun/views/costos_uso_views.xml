@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_costos_uso_tree" model="ir.ui.view">
+        <field name="name">costos.uso.tree</field>
+        <field name="model">costos.uso</field>
+        <field name="arch" type="xml">
+            <list string="Usos Costos">
+                <field name="name"/>
+                <field name="descripcion"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_costos_uso_form" model="ir.ui.view">
+        <field name="name">costos.uso.form</field>
+        <field name="model">costos.uso</field>
+        <field name="arch" type="xml">
+            <form string="Usos Costos">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="descripcion"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_costos_uso" model="ir.actions.act_window">
+        <field name="name">Usos Costos</field>
+        <field name="res_model">costos.uso</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_costos_uso_root" name="Usos Costos" parent="account.menu_analytic_accounting" action="action_costos_uso" sequence="10"/>
+</odoo>

@@ -1,0 +1,11 @@
+# Spanish (Colombia) translation template for costos_pi_ig
+msgid ""
+msgstr ""
+"Project-Id-Version: costos_pi_ig 1.0\n"
+"POT-Creation-Date: 2026-04-13 00:00+0000\n"
+"Language: es_CO\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Traducciones iniciales

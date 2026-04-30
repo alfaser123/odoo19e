@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_costos_uso,costos.uso,model_costos_uso,base.group_system,1,1,1,1
+access_driver_distribution,driver.distribution,model_driver_distribution,base.group_system,1,1,1,1
+access_analytic_distribution_models,account.analytic.distribution.model,model_account_analytic_distribution_model,base.group_system,1,1,1,1
+access_account_analytic_distribution_line,account.analytic.distribution.line,model_account_analytic_distribution_line,base.group_user,1,1,1,1

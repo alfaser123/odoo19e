@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_move_form_inherit_analytic_accounts" model="ir.ui.view">
+        <field name="name">account.move.form.inherit.analytic.accounts</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <!-- Filtrar Apuntes Contables (line_ids) para aplicar condicion (not product or is_analytic_split) -->
+            <xpath expr="//field[@name='line_ids']" position="attributes">
+                <attribute name="domain">['|', ('display_type', '!=', 'product'), ('is_analytic_split', '!=', False)]</attribute>
+            </xpath>
+            <!-- Agregar la columna invisible en Lineas de Factura -->
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='analytic_distribution']" position="after">
+                <field name="analytic_distribution_accounts" column_invisible="1"/>
+            </xpath>
+            <!-- Agregar la columna invisible en Apuntes Contables -->
+            <xpath expr="//field[@name='line_ids']/list/field[@name='analytic_distribution']" position="after">
+                <field name="analytic_distribution_accounts" column_invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

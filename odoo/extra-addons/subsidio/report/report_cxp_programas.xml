@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+	<data>
+		<report id="report_cxp_programas" model="fpa.cxp.programas.line"
+			string="CXP Programas EPS, EPSS e IPS" report_type="qweb-pdf"
+			name="subsidio.template_report_cxp_programas" file="subsidio.template_report_cxp_programas" />
+
+		<template id="template_report_cxp_programas">
+			<t t-call="report.html_container">
+				<t t-call="report.external_layout">
+					<div class="page">
+						<div align='center'>
+							<h3>
+                                <span t-field="docs[0].encabezado_id.financial_id.name" />
+							</h3>
+						</div>
+						<div align='left'>
+							<h4>
+								Hasta:
+								<span t-field="docs[0].encabezado_id.date_to" />
+							</h4>
+						</div>
+						<div align='right'>
+							<h5>
+								Fecha de Generacion:
+								<span
+									t-esc="(datetime.datetime.now()-relativedelta(hours=5)).strftime('%Y-%m-%d %H:%M:%S')" />
+							</h5>
+						</div>
+						<table class="table table-condensed">
+							<thead>
+								<tr>
+									<th>
+										<strong>Cuenta</strong>
+									</th>
+									<th>
+										<strong>Tipo deudor</strong>
+									</th>
+                                    <th>
+                                        <strong>Rango</strong>
+                                    </th>
+									<th>
+										<strong>Valor</strong>
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								<t t-foreach="docs" t-as="o">
+									<tr>
+										<td>
+											<span t-field="o.account_id" />
+										</td>
+										<td>
+											<span t-field="o.tipo_partner" />
+										</td>
+                                        <td>
+                                            <span t-field="o.rango" />
+                                        </td>
+										<td align="right">
+											<span t-field="o.valor" />
+										</td>
+									</tr>
+								</t>
+							</tbody>
+						</table>
+					</div>
+				</t>
+			</t>
+		</template>
+	</data>
+</openerp>

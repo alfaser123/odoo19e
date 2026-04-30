@@ -1,0 +1,71 @@
+<openerp>
+    <data>
+        <record model="ir.ui.view" id="account_journal_provision_extended_view">
+            <field name="name">account.journal.extended.form</field>
+            <field name="model">account.journal</field>
+            <field name="inherit_id" ref="account.view_account_journal_form"></field>
+            <field name="arch" type="xml">
+                <field name="show_on_dashboard" position="after">
+                    <field name="provision"/>
+                </field>
+            </field>
+        </record>
+
+        <record id="view_invoice_line_form_subsidio_view" model="ir.ui.view">
+            <field name="name">account.invoice.line.form.subsidio.abc</field>
+            <field name="model">account.invoice.line</field>
+            <field name="inherit_id" ref="account.view_invoice_line_form" />
+            <field name="arch" type="xml">
+                <field name="discount" position="after" >
+                    <field name="diferencia_subsidio"/>
+                </field>
+            </field>
+        </record>
+
+        <record id="view_invoice_form_subsidio_view" model="ir.ui.view">
+            <field name="name">account.invoice.subsidio</field>
+            <field name="model">account.invoice</field>
+            <field name="inherit_id" ref="sale.account_invoice_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//page/field[@name='invoice_line_ids']/tree/field[@name='price_unit']" position="before">
+			        <field name="diferencia_subsidio"/>
+			    </xpath>
+            </field>
+        </record>
+  
+
+        <record id="view_invoice_form_subsidio_ext" model="ir.ui.view">
+            <field name="name">account.invoice</field>
+            <field name="model">account.invoice</field>
+            <field name="inherit_id" ref="sale.account_invoice_form"/>
+            <field name="arch" type="xml">
+			     <xpath expr="//sheet/group/group/field[last()]" position="after">
+			        <field name="categoria_id"/>
+			    </xpath>
+            </field>
+        </record>    
+        
+		
+      <record id="view_account_move_line_tree_categoriasc" model="ir.ui.view">
+          <field name="name">account.move.line.categoriastree.extended</field>
+          <field name="model">account.move.line</field>
+          <field name="inherit_id" ref="account.view_move_line_tree" />
+          <field name="arch" type="xml">
+              <field name="name" position="after" >
+                  <field name="categ_id"/>
+              </field>
+          </field>
+      </record>
+      <record id="view_account_move_form_categorias" model="ir.ui.view">
+          <field name="name">account.move.categorias.form.extended</field>
+          <field name="model">account.move</field>
+          <field name="inherit_id" ref="account.view_move_form" />
+          <field name="arch" type="xml">
+            <field name="analytic_account_id" position="before" >
+                <field name="categ_id"/>
+            </field>
+          </field>
+      </record>
+
+    </data>
+</openerp>

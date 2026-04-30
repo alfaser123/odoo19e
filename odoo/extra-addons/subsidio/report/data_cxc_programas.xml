@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+  <data>
+        <record id="fpa_cxc_programas_data" model="fpa.financial.reports">
+            <field name="name">CXC PROGRAMAS EPS, EPSS E IPS</field>
+            <field name="categ">fi</field>
+	    	<field name="action">action_fpa_cxc_programas</field>
+	    	<field name="model_wzr">fpa.cxc.programas.wizard</field>
+	    	<field name="model">fpa.cxc.programas.line</field>
+	    	<field name="formato">pdf,xlsx</field>
+            <field name="tree">view_fpa_cxc_programas_line_tree</field>
+            <field name="domain">[('user_id','=',%s),('account_id','!=',False)]</field>
+	    	<field name="template">subsidio.template_report_cxc_programas</field>
+	    	<field name="view">wizard_fpa_cxc_programas_view</field>
+	    	<field name="title">Id, Codigo,Cuenta,Referencia,Tercero,Valor, Provision</field>
+	    	<field name="fields">account_id, partner_id, amount_inicial, valor, provision</field>
+	    	<field name="consulta">select fbpl.id, aa.code, aa.name as cuenta, rp.ref, rp.name, fbpl.valor, fbpl.provision from fpa_cxc_programas_line fbpl
+			left join account_account aa on aa.id = fbpl.account_id
+			inner join fpa_cxc_programas fbp on fbp.id = fbpl.encabezado_id
+			left join res_partner rp on rp.id = fbpl.partner_id
+			WHERE fbp.user_id = %s AND fbp.company_id = %s AND fbpl.nivel in (%s)
+			ORDER BY aa.code asc</field>
+        </record>
+  </data>
+</openerp>

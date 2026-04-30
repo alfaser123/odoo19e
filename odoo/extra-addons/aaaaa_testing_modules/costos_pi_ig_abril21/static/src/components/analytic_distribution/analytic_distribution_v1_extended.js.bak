@@ -1,0 +1,131 @@
+﻿/** @odoo-module **/
+
+import { registry } from "@web/core/registry";
+import { _t } from "@web/core/l10n/translation";
+import { AnalyticDistribution } from "@analytic/components/analytic_distribution/analytic_distribution";
+
+export class AnalyticDistributionExtended extends AnalyticDistribution {
+    
+    async jsonToData(jsonFieldValue) {
+        const standardJson = {};
+        const ourAccounts = {};
+        
+        for (const [key, value] of Object.entries(jsonFieldValue || {})) {
+            if (key === '__update__') {
+                standardJson[key] = value;
+                continue;
+            }
+            if (typeof value === 'object' && value !== null) {
+                standardJson[key] = value.percentage;
+                if (value.account_account_id) {
+                    ourAccounts[key] = value.account_account_id;
+                }
+            } else {
+                standardJson[key] = value;
+            }
+        }
+        
+        await super.jsonToData(standardJson);
+        
+        for (const line of this.state.formattedData) {
+            const key = line.analyticAccounts.reduce((p, n) => p.concat(n.accountId ? n.accountId : []), []).join(',');
+            let acctRecord = false;
+            
+            if (ourAccounts[key]) {
+                const acctId = ourAccounts[key];
+                const records = await this.orm.searchRead(
+                    "account.account",
+                    [["id", "=", acctId]],
+                    ["id", "display_name"]
+                );
+                if (records.length) {
+                    acctRecord = [records[0].id, records[0].display_name];
+                }
+            }
+            
+            line.account_account_id = acctRecord || false;
+        }
+    }
+
+    recordProps(line) {
+        const parentProps = super.recordProps(line);
+        parentProps.fields['account_account_id'] = {
+            string: _t("Account"),
+            type: "many2one",
+            relation: "account.account",
+            domain: [["active", "!=", false]],
+        };
+        parentProps.values['account_account_id'] = line.account_account_id || false;
+        return parentProps;
+    }
+
+    async lineChanged(record, changes, line) {
+        await super.lineChanged(record, changes, line);
+        if ('account_account_id' in changes) {
+            line.account_account_id = record.data.account_account_id;
+        }
+    }
+
+    dataToJson() {
+        const result = super.dataToJson();
+        const output = {};
+        for (const [key, pct] of Object.entries(result)) {
+            if (key === '__update__') {
+                output[key] = pct;
+                continue;
+            }
+            const line = this.state.formattedData.find(l => 
+                l.analyticAccounts.reduce((p, n) => p.concat(n.accountId ? n.accountId : []), []).join(',') === key
+            );
+            let acctId = false;
+            if (line && line.account_account_id) {
+                acctId = line.account_account_id[0];
+            }
+            output[key] = {
+                percentage: pct,
+                account_account_id: acctId
+            };
+        }
+        return output;
+    }
+
+    addLine() {
+        super.addLine();
+        const line = this.state.formattedData[this.state.formattedData.length - 1];
+        if (line) {
+            line.account_account_id = false;
+        }
+    }
+}
+
+export const analyticDistributionExtended = {
+    component: AnalyticDistributionExtended,
+    supportedTypes: ["json"],
+    fieldDependencies: [
+        { name: "analytic_precision", type: "integer" },
+    ],
+    supportedOptions: [
+        { label: _t("Disable save"), name: "disable_save", type: "boolean" },
+        { label: _t("Multi edit"), name: "multi_edit", type: "boolean" },
+        { label: _t("Force applicability"), name: "force_applicability", type: "boolean" },
+        { label: _t("Business domain"), name: "business_domain", type: "string" },
+        { label: _t("Product field"), name: "product_field", type: "field", availableTypes: ["many2one"] },
+        { label: _t("Amount field"), name: "amount_field", type: "field", availableTypes: ["monetary"] },
+        { label: _t("Account field"), name: "account_field", type: "field", availableTypes: ["many2one"] },
+        { label: _t("Dynamic Placeholder"), name: "placeholder_field", type: "field", availableTypes: ["char"] },
+    ],
+    extractProps: ({ attrs, options, placeholder }) => ({
+        business_domain: options.business_domain,
+        account_field: options.account_field,
+        product_field: options.product_field,
+        amount_field: options.amount_field,
+        business_domain_compute: attrs.business_domain_compute,
+        force_applicability: options.force_applicability,
+        allow_save: !options.disable_save,
+        multi_edit: options.multi_edit,
+        placeholder: placeholder,
+    }),
+};
+
+import { registry } from "@web/core/registry";
+registry.category("fields").add("analytic_distribution_extended", analyticDistributionExtended);

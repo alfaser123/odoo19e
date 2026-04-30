@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+	<data>
+		<record id="wizard_fpa_cxc_programas_view" model="ir.ui.view">
+			<field name="name">CXC Programas EPS, EPSS y IPS</field>
+			<field name="model">fpa.cxc.programas.wizard</field>
+			<field name="type">form</field>
+			<field name="arch" type="xml">
+				<form string="Opciones del informe" version="7.0">
+					<label string="" />
+					<group col="4">
+						<field name="chart_account_id" widget='selection' />
+						<field name="company_id" invisible="1" />
+                        <field name="account_filter" invisible="True"/>
+                        <field name="partner_filter" invisible="True"/>
+                        <field name="journal_filter" invisible="True"/>
+					</group>
+					<notebook tabpos="up" colspan="4">
+						<page string="Parametros Principales">
+							<group string="Fechas">
+								<field name="date_to" />
+							</group>
+                            <group string="Cuentas" attrs="{'invisible':[('account_filter', '!=', True)]}">
+                                <field name="account_ids" />
+                            </group>
+                            <group string="Terceros" attrs="{'invisible':[('partner_filter', '!=', True)]}">
+                            <field name="partner_ids" />
+                            </group>
+                            <group string="Diarios" attrs="{'invisible':[('journal_filter', '!=', True)]}">
+                                <field name="journal_ids" />
+                            </group>
+						</page>
+					</notebook>
+					<footer>
+						<button name="generar" string="Generar" type="object"
+							default_focus="1" class="oe_highlight" />
+						o
+						<button string="Cancelar" class="oe_link" special="cancel" />
+					</footer>
+				</form>
+			</field>
+		</record>
+
+		<record id="action_fpa_cxc_programas" model="ir.actions.act_window">
+			<field name="name">Asistente para generar CXC Programas</field>
+			<field name="res_model">fpa.cxc.programas.wizard</field>
+			<field name="view_type">form</field>
+			<field name="view_mode">form</field>
+			<field name="view_id" ref="wizard_fpa_cxc_programas_view" />
+			<field name="context">{ 'search_default_my_sale_orders_filter': 1 }
+			</field>
+			<field name="target">new</field>
+		</record>
+
+		<record id="view_fpa_cxc_programas_line_tree" model="ir.ui.view">
+			<field name="name">fpa.cxc.programas.line.tree</field>
+			<field name="model">fpa.cxc.programas.line</field>
+			<field name="type">tree</field>
+			<field name="arch" type="xml">
+				<tree default_order="account_id,partner_id">
+					<field name="account_id" />
+                    <field name="tipo_partner" />
+                    <field name="rango" />
+					<field name="valor" />
+					<field name="provision" />
+				</tree>
+			</field>
+		</record>
+
+		<record id="action_cxc_programas" model="ir.actions.act_window">
+			<field name="name">CXC Programas EPS, EPSS e IPS</field>
+			<field name="res_model">fpa.cxc.programas.line</field>
+			<field name="view_type">form</field>
+			<field name="view_mode">tree,graph</field>
+			<field name="view_id" ref="view_fpa_cxc_programas_line_tree" />
+			<field name="domain">[('user_id', '=', uid)]</field>
+			<field name="target">current</field>
+		</record>
+
+		<!--<menuitem name="Balance de pruebas" id="menu_fpa_cxc_programas"
+			parent="menu_fpa_analyze_financial_reports" action="action_cxc_programas"
+			sequence="10" />-->
+
+		<record id="view_fpa_cxc_programas_line_graph" model="ir.ui.view">
+			<field name="name">fpa.cxc.programas.line.graph</field>
+			<field name="model">fpa.cxc.programas.line</field>
+			<field name="type">graph</field>
+			<field name="arch" type="xml">
+				<graph string="Informe CXC Programas" type="pivot"
+					stacked="True">
+					<field name="valor" type="measure" />
+					<field name="provision" type="measure" />
+				</graph>
+			</field>
+		</record>
+
+		<record id="fpa_cxc_programas_line" model="ir.ui.view">
+			<field name="name">fpa.cxc.programas.line.search</field>
+			<field name="model">fpa.cxc.programas.line</field>
+			<field name="type">search</field>
+			<field name="arch" type="xml">
+				<search string="Buscar">
+					<field name="account_id" operator="Cuenta" />
+					<field name="partner_id" operator="Tercero" />
+					<filter string="Sin Tercero" name="sin_tercero" icon="terp-personal"
+						domain="[('partner_id','=',False)]" />
+					<filter string="Regulares (Sin Tercero)" name="regulares_sin_tercero"
+						domain="[('partner_id','=',False),('nivel','=',100)]" />
+					<filter string="Regulares" name="regulares"
+						domain="[('nivel','=',100)]" />
+					<filter string="Nivel 1" name="nivel_1"
+						domain="['|',('nivel','=',1),('nivel','=',98)]" />
+					<filter string="Nivel 2" name="nivel_2" domain="[('nivel','=',2)]" />
+					<filter string="Nivel 3" name="nivel_3" domain="[('nivel','=',3)]" />
+					<filter string="Nivel 4" name="nivel_4" domain="[('nivel','=',4)]" />
+					<group expand="0" string="Group By">
+						<filter string="Cuenta" context="{'group_by':'account_id'}" />
+						<filter string="Tercero" context="{'group_by':'partner_id'}" />
+					</group>
+				</search>
+			</field>
+		</record>
+	</data>
+</openerp>

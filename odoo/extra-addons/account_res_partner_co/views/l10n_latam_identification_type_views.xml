@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_l10n_latam_identification_type_tree_inherit_mysql_data_id" model="ir.ui.view">
+        <field name="name">l10n.latam.identification.type.tree.inherit.mysql.data.id</field>
+        <field name="model">l10n_latam.identification.type</field>
+        <field name="inherit_id" ref="l10n_latam_base.view_l10n_latam_identification_type_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[last()]" position="after">
+                <field name="mysql_data_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_l10n_latam_identification_type_form_technical" model="ir.ui.view">
+        <field name="name">l10n.latam.identification.type.form.technical</field>
+        <field name="model">l10n_latam.identification.type</field>
+        <field name="arch" type="xml">
+            <form string="Tipo de documento">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="sequence"/>
+						 <field name="is_vat"/>
+						  <field name="country_id"/>
+                        <field name="active"/>
+                        <field name="mysql_data_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+	
+	    <record id="action_l10n_latam_identification_type_technical_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_l10n_latam_identification_type_form_technical"/>
+        <field name="act_window_id" ref="l10n_co_dian_tech_menu_complete.action_l10n_latam_identification_type_technical"/>
+    </record>
+
+</odoo>

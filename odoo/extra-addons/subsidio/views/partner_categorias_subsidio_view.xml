@@ -1,0 +1,80 @@
+<openerp>
+    <data>
+        <record id="view_partner_categorias_form_extended" model="ir.ui.view">
+            <field name="name">res.partner.categorias.form.extended</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <page name="sales_purchases" position="after">
+                    <page name="cajas_compensacion" string="Cajas de compensación">
+                        <group>
+                            <field name="tipo_da_id" />
+                            <!--<label name="categoria" string="Categoria"/>-->
+                            <field name="categorias_id" />
+                            <!--<label name="historico" string="Historico"/>-->
+                            <field name="historico_ids">
+                                <tree string="Historico" default_order="fecha desc">
+                                    <field name="categoria_id"/>
+                                    <field name="fecha"/>
+                                    <field name="user_id"/>
+                                </tree>
+                            </field>
+                        </group>
+                    </page>
+                </page>
+            </field>
+        </record>
+        <record id="product_pricelist_item_categoria_form_view" model="ir.ui.view">
+            <field name="name">product.pricelist.item.categoria.form</field>
+            <field name="model">product.pricelist.item</field>
+            <field name="inherit_id" ref="product.product_pricelist_item_form_view"/>
+            <field name="arch" type="xml">
+                <field name="categ_id" position="after">
+                    <field name="categoria_id"/>
+                </field>
+            </field>
+        </record>
+        <record id="view_account_journal_subsidio_form_extended" model="ir.ui.view">
+            <field name="name">account.journal.subsidio.extended</field>
+            <field name="model">account.journal</field>
+            <field name="inherit_id" ref="account.view_account_journal_form"/>
+            <field name="arch" type="xml">
+                <page name="advanced_settings" position="after">
+                    <page string="Subsidio demanda" name="subsidio_demanda">
+                        <group>
+                            <group string="Accounts">
+                                <field name="account_deb_subdem"/>
+                                <field name="account_cre_subdem"/>
+                            </group>
+                        </group>
+                    </page>
+                </page>
+            </field>
+        </record>
+
+        <record id="tipo_da_view" model="ir.ui.view">
+            <field name="name">tipo.da.tree</field>
+            <field name="model">tipo.da</field>
+            <field name="arch" type="xml">
+                <tree string="Tipo Tercero" editable="buttom">
+                    <field name="name"/>
+                    <field name="comentario"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="act_tipo_tercero" model="ir.actions.act_window">
+            <field name="name">Tipo tercero</field>
+            <field name="res_model">tipo.da</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree</field>
+            <field name="usage">menu</field>
+            <field name="target">current</field>
+            <field name="view_id" ref="tipo_da_view"/>
+        </record>
+
+        <menuitem name='CCF' id='account_conf_ccf' parent='account.menu_finance_configuration' sequence='15'/>
+
+        <menuitem name='Tipo de tercero' id='tipo_tercero_da' parent='account_conf_ccf' action='act_tipo_tercero' sequence='15'/>
+    </data>
+</openerp>

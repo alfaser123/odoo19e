@@ -1,0 +1,54 @@
+<openerp>
+    <data>
+         <record id="view_categorias_update" model="ir.ui.view">
+            <field name="name">Actualizar masivamente categorias</field>
+            <field name="model">categorias.update</field>
+            <field name="arch" type="xml">
+                <form string="Actualizar masivamente categorias">
+                    <separator string="Actualizar masivamente categorias"/>
+                        <label string="Este asistente te permitira actualizar masivamente las categorias de los afiliados."/>
+                        <newline/>
+                    <footer>
+                        <button name="generar" string="Generar" type="object" class="oe_highlight"  />
+                        <button string="Cancelar" class="oe_link" special="cancel" />
+                    </footer>
+                </form>
+            </field>
+        </record>
+        <record id="view_categorias_conf" model="ir.ui.view">
+            <field name="name">Configurar categorias</field>
+            <field name="model">categorias.ftp.datos</field>
+            <field name="arch" type="xml">
+                <form string="Configurar categorias">
+                    <group>
+                        <field name="url"/>
+                        <field name="port"/>
+                        <field name="timeout"/>
+                        <field name="user"/>
+                        <field name="password"/>
+                        <field name="file"/>
+                    </group>
+                </form>
+            </field>
+        </record>
+        <record id="act_categorias_update" model="ir.actions.act_window">
+            <field name="name">Actualizar masivamente categorias</field>
+            <field name="res_model">categorias.update</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+        <record id="act_categorias_conf" model="ir.actions.act_window">
+            <field name="name">Configurar categorias</field>
+            <field name="res_model">categorias.ftp.datos</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="target">current</field>
+        </record>
+        <menuitem name='Categorias Afiliados' id='parent_categorias_update' parent='account_conf_ccf' sequence='60' />
+
+        <menuitem name="Actualizar categorias" action="act_categorias_update" id="menu_categorias_update" parent="parent_categorias_update" sequence="10"/>
+
+        <menuitem name="Datos de conexión" action="act_categorias_conf" id="menu_categorias_conf" parent="parent_categorias_update" sequence="10"/>
+    </data>
+</openerp>

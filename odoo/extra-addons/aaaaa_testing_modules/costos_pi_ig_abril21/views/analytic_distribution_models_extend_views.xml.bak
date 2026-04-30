@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_analytic_distribution_models_form_extend" model="ir.ui.view">
+        <field name="name">account.analytic.distribution.model.form.extend</field>
+        <field name="model">account.analytic.distribution.model</field>
+        <field name="inherit_id" ref="account.account_analytic_distribution_model_form_inherit"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='company_id']" position="after">
+                <field name="analytic_account_ids" widget="many2many_tags"/>
+                <field name="costos_uso_id"/>
+                <field name="analytic_distribution_accounts" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_analytic_distribution_models_tree_extend" model="ir.ui.view">
+        <field name="name">account.analytic.distribution.model.tree.extend</field>
+        <field name="model">account.analytic.distribution.model</field>
+        <field name="inherit_id" ref="account.account_analytic_distribution_model_tree_inherit"/>
+        <field name="arch" type="xml">
+            <xpath expr="//tree | //list" position="attributes">
+                <attribute name="editable">bottom</attribute>
+            </xpath>
+            <list position="inside">
+                <field name="costos_uso_id"/>
+                <field name="analytic_account_ids" widget="many2many_tags"/>
+                <field name="analytic_distribution_accounts" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+</odoo>

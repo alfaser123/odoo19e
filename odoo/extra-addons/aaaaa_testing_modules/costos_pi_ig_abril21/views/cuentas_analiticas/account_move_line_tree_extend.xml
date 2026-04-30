@@ -1,0 +1,12 @@
+<odoo>
+    <record id="account_move_line_tree_extend" model="ir.ui.view">
+        <field name="name">account.move.line.tree.extend</field>
+        <field name="model">account.move.line</field>
+        <field name="inherit_id" ref="account.view_move_line_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="account_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

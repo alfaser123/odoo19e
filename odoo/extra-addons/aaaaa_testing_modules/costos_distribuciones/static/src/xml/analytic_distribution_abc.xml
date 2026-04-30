@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="costos_distribuciones.AnalyticDistributionPopupABC"
+       t-inherit="analytic.AnalyticDistributionPopup"
+       t-inherit-mode="extension">
+
+        <!-- Cabecera -->
+        <xpath expr="//thead/tr/th[@class='numeric_column_width'][1]" position="before">
+            <th>Cuenta contable</th>
+        </xpath>
+
+        <!-- Cuerpo -->
+        <xpath expr="//tbody/tr/Record/t" position="replace">
+            <t t-foreach="Object.keys(data.record.fields).filter((f) => (f == 'account_id' || f.startsWith('x_plan')) &amp;&amp; f != 'abc_account_id')"
+               t-as="field"
+               t-key="field">
+                <td t-att-style="field == 'account_id' or state.update_plan[field] ? '' : '--table-bg-state: var(--table-hover-bg);'">
+                    <Field t-if="field == 'account_id' or state.update_plan[field]"
+                           id="field"
+                           name="field"
+                           record="data.record"
+                           domain="data.record.fields[field].domain"
+                           canOpen="false"
+                           canCreate="false"
+                           canCreateEdit="false"
+                           canQuickCreate="false"/>
+                </td>
+            </t>
+
+            <td>
+                <Field id="'abc_account_id'"
+                       name="'abc_account_id'"
+                       record="data.record"
+                       domain="data.record.fields.abc_account_id.domain"
+                       canOpen="false"
+                       canCreate="false"
+                       canCreateEdit="false"
+                       canQuickCreate="false"/>
+            </td>
+        </xpath>
+
+        <!-- Ajuste del colspan -->
+        <xpath expr="//tr/td[@t-att-colspan='allPlans.length + 2 + valueColumnEnabled']" position="attributes">
+            <attribute name="t-att-colspan">allPlans.length + 3 + valueColumnEnabled</attribute>
+        </xpath>
+
+    </t>
+
+</templates>

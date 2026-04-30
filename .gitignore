@@ -9,6 +9,8 @@ venv/
 *.pid
 filestore/
 sessions/
+data/
+.env
 
 # Editor/OS
 .DS_Store

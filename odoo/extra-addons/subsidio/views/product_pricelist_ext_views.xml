@@ -1,0 +1,21 @@
+<odoo>
+    <data>
+        <record model="ir.ui.view" id="product_pricelist_item_extended_form_view">
+            <field name="name">product.pricelist.item.extended.form</field>
+            <field name="model">product.pricelist.item</field>
+            <field name="inherit_id" ref="product.product_pricelist_item_form_view"></field>
+            <field name="arch" type="xml">
+                <field name="price_max_margin" position="after">
+                    <field name="price_taxed_subsidiado"/>
+					<field name="tax_id"/>
+                </field>
+            </field>
+        </record>
+		
+
+		
+		
+		
+
+    </data>
+</odoo>

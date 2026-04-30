@@ -1,0 +1,15 @@
+mysql tipos de documento
+
+| coddoc | detdoc                          | dv   | codrua | codcom | codcont | codcar | supgir |
++--------+---------------------------------+------+--------+--------+---------+--------+--------+
+| 1      | CEDULA CIUDADANIA               | N    | CC     | 1      | 1       | CC     | CC     |
+| 2      | TARJETA IDENTIDAD               | N    | TI     | 4      | 2       | TI     | TI     |
+| 3      | NIT                             | S    | NI     | 3      | 7       | NIT    | NULL   |
+| 4      | CEDULA EXTRANJERIA              | N    | CE     | 6      | 4       | CE     | CE     |
+| 5      | REGISTRO CIVIL                  | N    | RC     | N      | 3       | RC     | NULL   |
+| 6      | CARNET DIPLOMATICO              | N    | CD     | 6      | 8       | CD     | NULL   |
+| 7      | PERMISO ESPECIAL DE PERMANENCIA | N    | PE     | 9      | 9       | PE     | CEX    |
+| 8      | PERMISO POR PROTECCION TEMPORAL | N    | PT     | 8      | 9       | PT     | CEX    |
+| 9      | PASAPORTE                       | N    | PA     | P      | 9       | PA     | PA     |
+| V      | VISA                            | N    | VI     | V      | V       | VI     | NULL   |
++--------+---------------------------------+------+--------+--------+---------+--------+--------+

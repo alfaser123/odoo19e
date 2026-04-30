@@ -1,0 +1,125 @@
+﻿/** @odoo-module **/
+
+import { patch } from "@web/core/utils/patch";
+import { _t } from "@web/core/l10n/translation";
+import { AnalyticDistribution } from "@analytic/components/analytic_distribution/analytic_distribution";
+
+patch(AnalyticDistribution.prototype, {
+    
+    async jsonToData(jsonFieldValue) {
+        // En Odoo estándar jsonFieldValue debe ser un dict numérico: { "123": 50 }
+        // Sin embargo, nuestro Python nos mandó: { "123": { "percentage": 50, "account_account_id": 412 } }
+        // Desempaquetemos primero para engañar a Odoo estándar:
+        const standardJson = {};
+        const ourAccounts = {};
+        
+        for (const [key, value] of Object.entries(jsonFieldValue || {})) {
+            if (key === '__update__') {
+                standardJson[key] = value;
+                continue;
+            }
+            if (typeof value === 'object' && value !== null) {
+                standardJson[key] = value.percentage || 0;
+                if (value.account_account_id) {
+                    ourAccounts[key] = value.account_account_id;
+                }
+            } else {
+                standardJson[key] = value || 0;
+            }
+        }
+        
+        // Ejecutamos la carga estandar de Odoo con la data LIMPIA
+        await super.jsonToData(standardJson);
+        
+        // Ahora asignamos a la linea las cuentas recuperadas desde nuestro objeto desglosado
+        for (const line of this.state.formattedData) {
+            // Buscamos la llave usando la logica de Odoo (accountId concatenado)
+            const key = line.analyticAccounts.reduce((p, n) => p.concat(n.accountId ? n.accountId : []), []).join(',');
+            
+            let acctRecord = false;
+            
+            if (ourAccounts[key]) {
+                const acctId = ourAccounts[key];
+                // Resolvemos el Display Name si no tenemos la dupla
+                const records = await this.orm.searchRead(
+                    "account.account",
+                    [["id", "=", acctId]],
+                    ["id", "display_name"]
+                );
+                if (records.length) {
+                    acctRecord = [records[0].id, records[0].display_name];
+                }
+            }
+            
+            line.account_account_id = acctRecord || false;
+        }
+    },
+
+    recordProps(line) {
+        // Pedimos al padre (Odoo) que haga TODO su trabajo sucio
+        const parentProps = super.recordProps(line);
+        
+        // Ahora, le pegamos nuestra cuenta mágicamente
+        parentProps.fields.account_account_id = {
+            string: _t("Account"),
+            type: "many2one",
+            relation: "account.account",
+            domain: [["active", "!=", false]],
+        };
+        
+        parentProps.values.account_account_id = line.account_account_id || false;
+        
+        return parentProps;
+    },
+
+    async lineChanged(record, changes, line) {
+        // Odoo estandar actualiza sus planes y porcentajes
+        await super.lineChanged(record, changes, line);
+        
+        // Nosotros capturamos el evento de nuestra cuenta
+        if ('account_account_id' in changes) {
+            const glSelected = record.data.account_account_id || false;
+            line.account_account_id = glSelected;
+        }
+    },
+
+    dataToJson() {
+        // Delegamos el json viejo estandar
+        const result = super.dataToJson();
+        
+        // Convertimos el JSON plano {"123": 50.0} a nuestro JSON en capas
+        const output = {};
+        for (const [key, pct] of Object.entries(result)) {
+            if (key === '__update__') {
+                output[key] = pct;
+                continue;
+            }
+            
+            // Buscamos que linea tiene esta llave
+            const line = this.state.formattedData.find(l => 
+                l.analyticAccounts.reduce((p, n) => p.concat(n.accountId ? n.accountId : []), []).join(',') === key
+            );
+            
+            let acctId = false;
+            if (line && line.account_account_id) {
+                acctId = line.account_account_id[0];
+            }
+            
+            // Sobreescribimos con nuestro payload diccionario que interceptará el backend en Python
+            output[key] = {
+                percentage: pct,
+                account_account_id: acctId
+            };
+        }
+        
+        return output;
+    },
+
+    addLine() {
+        super.addLine();
+        const line = this.state.formattedData[this.state.formattedData.length - 1];
+        if (line) {
+            line.account_account_id = false;
+        }
+    }
+});

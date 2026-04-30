@@ -1,0 +1,51 @@
+<odoo>
+  <data>
+    <record id="ztree_view_account_group_form" model="ir.ui.view">
+        <field name="name">ztree.account.group.form</field>
+        <field name="model">account.group</field>
+        <field name="inherit_id" ref="account.view_account_group_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='company_id']" position="after">
+                <field name="nivel" readonly="1" string="Nivel jerárquico"/>
+            </xpath>
+        </field>
+    </record>
+    <!-- account.account -->
+    <record id="ztree_view_account_form" model="ir.ui.view">
+        <field name="name">ztree.account.account.form</field>
+        <field name="model">account.account</field>
+        <field name="inherit_id" ref="account.view_account_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="group_id" string="Grupo"/>
+            </xpath>
+            <xpath expr="//field[@name='code']" position="after">
+                <field name="group_hierarchy_ids" widget="many2many_tags"/>
+            </xpath>
+        </field>
+    </record>
+    <!-- Añadir columna de jerarquía de grupos en la vista tree -->
+    <record id="app_view_account_list" model="ir.ui.view">
+        <field name="name">app.account.account.list.view</field>
+        <field name="model">account.account</field>
+        <field name="inherit_id" ref="account.view_account_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='group_id']" position="after">
+                <field name="group_hierarchy_ids" widget="many2many_tags"/>
+            </xpath>
+        </field>
+    </record>
+    
+    <record id="ztree_view_account_group_tree" model="ir.ui.view">
+        <field name="name">ztree.account.group.tree</field>
+        <field name="model">account.group</field>
+        <field name="arch" type="xml">
+            <list string="Account Groups">
+                <field name="name"/>
+                <field name="code_prefix_start"/>
+                <field name="nivel" readonly="1"/>
+            </list>
+        </field>
+    </record>
+  </data>
+</odoo>

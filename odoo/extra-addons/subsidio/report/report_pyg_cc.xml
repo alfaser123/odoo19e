@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+	<data>
+		<report id="report_pyg_cc" model="fpa.pyg.cc.line"
+			string="Ganancias y pérdidas por Centro de Costo" report_type="qweb-pdf"
+			name="subsidio.template_report_pyg_cc" file="subsidio.template_report_pyg_cc" />
+
+		<template id="template_report_pyg_cc">
+			<t t-call="report.html_container">
+				<t t-call="report.external_layout">
+					<div class="page">
+						<div align='center'>
+							<h3>
+								<span t-field="docs[0].encabezado_id.financial_id.name" />
+							</h3>
+						</div>
+						<div align='left'>
+							<h4>
+								Desde:
+								<span t-field="docs[0].encabezado_id.date_from" />
+							</h4>
+						</div>
+						<div align='left'>
+							<h4>
+								Hasta:
+								<span t-field="docs[0].encabezado_id.date_to" />
+							</h4>
+						</div>
+						<div align='right'>
+							<h5>
+								Fecha de Generacion:
+								<span
+									t-esc="(datetime.datetime.now()-relativedelta(hours=5)).strftime('%Y-%m-%d %H:%M:%S')" />
+							</h5>
+						</div>
+						<table class="table table-condensed">
+							<thead>
+								<tr>
+									<th style="text-align: center;">
+										<strong>CUENTA</strong>
+									</th>
+									<th style="text-align: center;">
+										<strong>MONTO EJECUTADO</strong>
+									</th>
+                                    <th style="text-align: center;">
+										<strong>MONTO PRESUPUESTADO</strong>
+									</th>
+                                    <th style="text-align: center;">
+										<strong>MONTO EJECUTADO (PERIODO ANTERIOR)</strong>
+									</th>
+								</tr>
+							</thead>
+                            <tbody>
+                                <t t-foreach="list(set([ x.analytic_account_id for x in docs]))" t-as="analytic">
+                                    <tr>
+                                        <th style="text-align: left;">
+                                            <strong><span t-field="analytic.code"/>-<span t-field="analytic.name"/></strong>
+                                        </th>
+                                        <t t-foreach="docs.sorted(key=lambda b: b.id)" t-as="o">
+                                            <t t-if="analytic.id == o.analytic_account_id.id and not o.account_id and not o.description">
+                                                <th style="text-align: right;">
+                                                    <strong><span t-field="o.amount_ejecutado"/></strong>
+                                                </th>
+                                                <th style="text-align: right;">
+                                                    <strong><span t-field="o.amount_presupuestado"/></strong>
+                                                </th>
+                                                <th style="text-align: right;">
+                                                    <strong><span t-field="o.amount_ejecutado_ant"/></strong>
+                                                </th>
+                                            </t>
+                                        </t>
+                                    </tr>
+                                    <t t-foreach="docs[0].encabezado_id.financial_id.concepts_ids" t-as="concepts">
+                                        <t t-if="not concepts.resume">
+                                            <t t-if="concepts.before">
+                                                <tr>
+                                                    <th style="text-align: left;">
+                                                        <strong><span t-field="concepts.name"/></strong>
+                                                    </th>
+                                                    <t t-foreach="docs.sorted(key=lambda b: b.id)" t-as="o">
+                                                        <t t-if="o.analytic_account_id.id and o.analytic_account_id.id == analytic.id and o.concepto == concepts.id">
+                                                            <t t-if="not o.account_id">
+                                                                <th style="text-align: right;">
+                                                                    <strong><span t-field="o.amount_ejecutado"/></strong>
+                                                                </th>
+                                                                <th style="text-align: right;">
+                                                                    <strong><span t-field="o.amount_presupuestado"/></strong>
+                                                                </th>
+                                                                <th style="text-align: right;">
+                                                                    <strong><span t-field="o.amount_ejecutado_ant"/></strong>
+                                                                </th>
+                                                            </t>
+                                                        </t>
+                                                    </t>
+                                                </tr>
+                                            </t>
+                                            <t t-foreach="docs.sorted(key=lambda b: b.id)" t-as="o">
+                                                <t t-if="o.analytic_account_id.id and o.analytic_account_id.id == analytic.id and o.concepto == concepts.id">
+                                                    <t t-if="o.account_id">
+                                                        <tr>
+                                                            <td style="text-align: left;">
+                                                                <span t-field="o.account_id"/>
+                                                            </td>
+                                                            <td style="text-align: right;">
+                                                                <span t-field="o.amount_ejecutado"/>
+                                                            </td>
+                                                            <td style="text-align: right;">
+                                                                <span t-field="o.amount_presupuestado"/>
+                                                            </td>
+                                                            <td style="text-align: right;">
+                                                                <span t-field="o.amount_ejecutado_ant"/>
+                                                            </td>
+                                                        </tr>
+                                                    </t>
+                                                </t>
+                                            </t>
+                                            <t t-if="not concepts.before">
+                                                <tr>
+                                                    <th style="text-align: left;">
+                                                        <strong><span t-if="concepts.before" t-field="concepts.name"/></strong>
+                                                    </th>
+                                                    <t t-foreach="docs.sorted(key=lambda b: b.id)" t-as="o">
+                                                        <t t-if="o.analytic_account_id.id and o.analytic_account_id.id == analytic.id and o.concepto == concepts.id">
+                                                            <t t-if="not o.account_id">
+                                                                <th style="text-align: right;">
+                                                                    <strong><span t-field="o.amount_ejecutado"/></strong>
+                                                                </th>
+                                                                <th style="text-align: right;">
+                                                                    <strong><span t-field="o.amount_presupuestado"/></strong>
+                                                                </th>
+                                                                <th style="text-align: right;">
+                                                                    <strong><span t-field="o.amount_ejecutado_ant"/></strong>
+                                                                </th>
+                                                            </t>
+                                                        </t>
+                                                    </t>
+                                                </tr>
+                                            </t>
+                                        </t>
+                                    </t>
+                                </t>
+                            </tbody>
+                        </table>
+					</div>
+				</t>
+			</t>
+		</template>
+	</data>
+</openerp>

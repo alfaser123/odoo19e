@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+	<data>
+		<report id="voucher" model="account.voucher"
+			string="Comprobante" report_type="qweb-pdf"
+			name="subsidio.template_voucher" file="subsidio.template_voucher" />
+
+		<template id="template_voucher">
+			<t t-call="report.html_container">
+				<div class="page">
+                                        <br/>
+                                        <br/>
+					<div align="left" style="font-size:0.93em;">
+                                        	<span t-field="docs[0].date"/>
+					</div>
+                                        <div align="center" style="font-size:0.93em;">
+                                        	<span t-field="docs[0].number"/>
+					</div>
+                                        <br/>
+                                        <br/>
+                                        <br/>
+                                        <br/>
+                                        <br/>
+                                        <br/>
+					<div align="left"><span t-field="docs[0].narration"/></div>
+                                        <br/>
+                                        <br/>
+					<table style="font-size:0.63em; border-collapse: separate; border-spacing:  7px;">
+						<tbody>
+							<t t-foreach="docs" t-as="o">
+								<t t-foreach="o.move_ids" t-as="l">
+									<tr>
+										<td>
+											<span t-field="l.account_id"/>
+										</td>
+<td></td>
+										<td>
+											<span t-field="l.name"/>-<span t-field="l.ref"/>
+										</td>
+<td></td>
+                                                                                <td>
+                                                                                        <span t-field="l.partner_id"/>
+                                                                                </td>
+<td></td>
+                                                                                <td>
+                                                                                        <span t-field="l.debit"/>
+                                                                                </td>
+<td></td>
+                                                                                <td>
+                                                                                        <span t-field="l.credit"/>
+                                                                                </td>
+									</tr>
+								    </t>
+								</t>
+							</tbody>
+						</table>
+					</div>
+			</t>
+		</template>
+	</data>
+
+</openerp>

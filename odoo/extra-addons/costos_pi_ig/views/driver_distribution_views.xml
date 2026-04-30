@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_driver_distribution_tree" model="ir.ui.view">
+        <field name="name">driver.distribution.tree</field>
+        <field name="model">driver.distribution</field>
+        <field name="arch" type="xml">
+            <list string="Controladores de Distribución">
+                <field name="codigo"/>
+                <field name="valor"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_driver_distribution_form" model="ir.ui.view">
+        <field name="name">driver.distribution.form</field>
+        <field name="model">driver.distribution</field>
+        <field name="arch" type="xml">
+            <form string="Controladores de Distribución">
+                <sheet>
+                    <group>
+                        <field name="codigo"/>
+                        <field name="valor"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_driver_distribution" model="ir.actions.act_window">
+        <field name="name">Controladores de Distribución</field>
+        <field name="res_model">driver.distribution</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_driver_distribution_root" name="Controladores de Distribución" parent="account.menu_analytic_accounting" action="action_driver_distribution" sequence="20"/>
+</odoo>

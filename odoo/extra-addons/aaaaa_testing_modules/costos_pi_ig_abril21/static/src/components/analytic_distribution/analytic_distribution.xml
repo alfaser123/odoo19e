@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="costos_pi_ig.AnalyticDistributionPopup" t-inherit="analytic.AnalyticDistributionPopup" t-inherit-mode="extension">
+
+        <!-- Cabecera a prueba de idiomas - Anclando a la primera columna numerica -->
+        <xpath expr="//thead/tr/th[@class='numeric_column_width'][1]" position="before">
+            <th class="text-center">Cuenta contable</th>
+        </xpath>
+
+        <!-- Cuerpo a prueba de loops de componentes -->
+        <xpath expr="//tbody/tr/Record/t" position="replace">
+            <t t-foreach="Object.keys(data.record.fields).filter((f) => (f == 'account_id' || f.startsWith('x_plan')) &amp;&amp; f != 'account_account_id')"
+               t-as="field"
+               t-key="field">
+                <td t-att-style="state.update_plan[field] ? '' : '--table-bg-state: var(--table-hover-bg);'">
+                    <Field t-if="state.update_plan[field]"
+                           id="field"
+                           name="field"
+                           record="data.record"
+                           domain="data.record.fields[field].domain"
+                           canOpen="false"
+                           canCreate="false"
+                           canCreateEdit="false"
+                           canQuickCreate="false"/>
+                </td>
+            </t>
+            <td style="min-width: 15rem;">
+                <Field id="'account_account_id'"
+                       name="'account_account_id'"
+                       record="data.record"
+                       canOpen="false"
+                       canCreate="false"
+                       canCreateEdit="false"
+                       canQuickCreate="false"/>
+            </td>
+        </xpath>
+
+        <!-- Balanceo matematico de celdas para el boton "Agregar linea" final -->
+        <xpath expr="//tr/td[@t-att-colspan='allPlans.length + 2 + valueColumnEnabled']" position="attributes">
+            <attribute name="t-att-colspan">allPlans.length + 3 + valueColumnEnabled</attribute>
+        </xpath>
+
+    </t>
+</templates>
