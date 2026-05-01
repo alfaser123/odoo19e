@@ -7,7 +7,7 @@
     'author': 'pi-ig leonardo rojas',
     'license': 'LGPL-3',
     'website': 'http://www.pi-ig.com',
-    'depends': ['base', 'account', 'analytic'],
+    'depends': ['base', 'account', 'analytic','accountant'],
     'data': [
         'security/ir.model.access.csv',
         'views/costos_uso_views.xml',
