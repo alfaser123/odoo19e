@@ -10,14 +10,16 @@
                 <attribute name="name">filtered_line_ids</attribute>
             </xpath>
             <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='analytic_distribution']" position="before">
-                <field name="costos_uso_id" optional="show"/>
+                <field name="allowed_costos_uso_ids" column_invisible="1"/>
+                <field name="costos_uso_id" optional="show" domain="[('id', 'in', allowed_costos_uso_ids)]"/>
             </xpath>
             <!-- Agregar la columna invisible en Lineas de Factura -->
             <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='analytic_distribution']" position="after">
                 <field name="analytic_distribution_accounts" column_invisible="1"/>
             </xpath>
             <xpath expr="//field[@name='filtered_line_ids']/list/field[@name='analytic_distribution']" position="before">
-                <field name="costos_uso_id" optional="show"/>
+                <field name="allowed_costos_uso_ids" column_invisible="1"/>
+                <field name="costos_uso_id" optional="show" domain="[('id', 'in', allowed_costos_uso_ids)]"/>
             </xpath>
             <!-- Agregar la columna invisible en Apuntes Contables -->
             <xpath expr="//field[@name='filtered_line_ids']/list/field[@name='analytic_distribution']" position="after">
