@@ -8,15 +8,88 @@ _logger = logging.getLogger(__name__)
 class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
+    ZERO_FINANCIAL_IMPACT_VALS = {
+        'debit': 0.0,
+        'credit': 0.0,
+        'balance': 0.0,
+        'amount_currency': 0.0,
+    }
+
     is_zero_financial_impact = fields.Boolean(
         string='Sin Impacto Financiero',
         default=False,
         help="Si es verdadero, fuerza a que el Débito, Crédito, Balance y Monto en Divisa sean 0."
     )
     costos_uso_id = fields.Many2one('costos.uso', string='Uso de Costo')
+    analytic_account_id = fields.Many2one(
+        'account.analytic.account',
+        string='Cuenta Analítica',
+        check_company=True,
+    )
     allowed_costos_uso_ids = fields.Many2many('costos.uso', compute='_compute_allowed_costos_uso_ids')
 
-    @api.depends('product_id', 'partner_id', 'company_id', 'account_id')
+    def _force_zero_financial_impact(self):
+        def needs_zero(line):
+            company_currency = line.company_currency_id or line.company_id.currency_id
+            line_currency = line.currency_id or company_currency
+            return (
+                not company_currency.is_zero(line.debit)
+                or not company_currency.is_zero(line.credit)
+                or not company_currency.is_zero(line.balance)
+                or not line_currency.is_zero(line.amount_currency)
+            )
+
+        lines = self.filtered(lambda line: line.is_zero_financial_impact and needs_zero(line))
+        if lines:
+            lines.with_context(
+                skip_costos_zero_guard=True,
+                check_move_validity=False,
+                skip_account_move_synchronization=True,
+            ).write(dict(self.ZERO_FINANCIAL_IMPACT_VALS))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('is_zero_financial_impact'):
+                vals.update(self.ZERO_FINANCIAL_IMPACT_VALS)
+        lines = super().create(vals_list)
+        lines._force_zero_financial_impact()
+        return lines
+
+    def write(self, vals):
+        if self.env.context.get('skip_costos_zero_guard'):
+            return super().write(vals)
+
+        vals = vals.copy()
+        if vals.get('is_zero_financial_impact') is True:
+            vals.update(self.ZERO_FINANCIAL_IMPACT_VALS)
+            res = super().write(vals)
+            self._force_zero_financial_impact()
+            return res
+
+        zero_lines = self.filtered('is_zero_financial_impact')
+        normal_lines = self - zero_lines
+
+        res = True
+        if normal_lines:
+            res = super(AccountMoveLine, normal_lines).write(vals) and res
+
+        if zero_lines:
+            zero_vals = vals.copy()
+            if zero_vals.get('is_zero_financial_impact', True) and self.ZERO_FINANCIAL_IMPACT_VALS.keys() & zero_vals.keys():
+                zero_vals.update(self.ZERO_FINANCIAL_IMPACT_VALS)
+            res = super(
+                AccountMoveLine,
+                zero_lines.with_context(skip_costos_zero_guard=True),
+            ).write(zero_vals) and res
+            zero_lines._force_zero_financial_impact()
+
+        return res
+
+    def _validate_analytic_distribution(self):
+        return super(AccountMoveLine, self.filtered(lambda line: not line.is_analytic_split))._validate_analytic_distribution()
+
+    @api.depends('product_id', 'partner_id', 'company_id', 'account_id', 'analytic_account_id')
     def _compute_allowed_costos_uso_ids(self):
         for line in self:
             if line.display_type == 'product' or not line.move_id.is_invoice(include_receipts=True):
@@ -47,14 +120,14 @@ class AccountMoveLine(models.Model):
             else:
                 line.allowed_costos_uso_ids = False
 
-    @api.depends('is_zero_financial_impact')
+    @api.depends('move_id', 'is_zero_financial_impact')
     def _compute_balance(self):
         super()._compute_balance()
         for line in self:
             if getattr(line, 'is_zero_financial_impact', False):
                 line.balance = 0.0
 
-    @api.depends('is_zero_financial_impact')
+    @api.depends('balance', 'is_zero_financial_impact')
     def _compute_debit_credit(self):
         super()._compute_debit_credit()
         for line in self:
@@ -62,14 +135,14 @@ class AccountMoveLine(models.Model):
                 line.debit = 0.0
                 line.credit = 0.0
 
-    @api.depends('is_zero_financial_impact')
+    @api.depends('currency_id', 'company_id', 'currency_rate', 'balance', 'is_zero_financial_impact')
     def _compute_amount_currency(self):
         super()._compute_amount_currency()
         for line in self:
             if getattr(line, 'is_zero_financial_impact', False):
                 line.amount_currency = 0.0
 
-    @api.depends('account_id', 'partner_id', 'product_id', 'costos_uso_id')
+    @api.depends('account_id', 'partner_id', 'product_id', 'costos_uso_id', 'analytic_account_id')
     def _compute_analytic_distribution(self):
         super()._compute_analytic_distribution()
 
@@ -136,6 +209,7 @@ class AccountMoveLine(models.Model):
     def _get_analytic_distribution_arguments(self, root_plans):
         res = super()._get_analytic_distribution_arguments(root_plans)
         res['costos_uso_id'] = self.costos_uso_id.id or False
+        res['analytic_account_id'] = self.analytic_account_id.id or False
         return res
 
 class AccountMove(models.Model):
@@ -163,6 +237,68 @@ class AccountMove(models.Model):
                 self._split_analytic_financial_lines()
         return res
 
+    def _force_zero_financial_impact_lines(self):
+        lines = self.line_ids.filtered('is_zero_financial_impact')
+        lines._force_zero_financial_impact()
+
+    @api.depends(
+        'line_ids.balance',
+        'line_ids.currency_id',
+        'line_ids.amount_currency',
+        'line_ids.amount_residual',
+        'line_ids.amount_residual_currency',
+        'line_ids.payment_id.state',
+        'line_ids.full_reconcile_id',
+        'line_ids.is_analytic_split',
+        'line_ids.is_zero_financial_impact',
+        'invoice_line_ids.price_subtotal',
+        'invoice_line_ids.price_total',
+        'state',
+    )
+    def _compute_amount(self):
+        super()._compute_amount()
+        for move in self:
+            if not move.is_invoice(True) or not move.line_ids.filtered(lambda line: line.is_analytic_split or line.is_zero_financial_impact):
+                continue
+
+            visible_product_lines = move.invoice_line_ids.filtered(
+                lambda line: line.display_type == 'product' and not line.is_analytic_split
+            )
+            if not visible_product_lines:
+                continue
+
+            amount_untaxed = move.currency_id.round(sum(visible_product_lines.mapped('price_subtotal')))
+            amount_total = move.currency_id.round(sum(visible_product_lines.mapped('price_total')))
+            amount_tax = move.currency_id.round(amount_total - amount_untaxed)
+
+            signed_sign = -move.direction_sign
+            move.amount_untaxed = amount_untaxed
+            move.amount_tax = amount_tax
+            move.amount_total = amount_total
+            move.amount_untaxed_signed = signed_sign * amount_untaxed
+            move.amount_untaxed_in_currency_signed = signed_sign * amount_untaxed
+            move.amount_tax_signed = signed_sign * amount_tax
+            move.amount_total_signed = signed_sign * amount_total
+            move.amount_total_in_currency_signed = signed_sign * amount_total
+
+    def _get_rounded_base_and_tax_lines(self, round_from_tax_lines=True):
+        base_lines, tax_lines = super()._get_rounded_base_and_tax_lines(round_from_tax_lines=round_from_tax_lines)
+        if self.line_ids.filtered('is_analytic_split'):
+            base_lines = [
+                base_line
+                for base_line in base_lines
+                if not getattr(base_line.get('record'), 'is_analytic_split', False)
+            ]
+        return base_lines, tax_lines
+
+    def _post(self, soft=True):
+        draft_moves = self.filtered(lambda move: move.state == 'draft')
+        draft_moves._split_analytic_financial_lines()
+        draft_moves._force_zero_financial_impact_lines()
+        posted_moves = super()._post(soft=soft)
+        posted_moves._force_zero_financial_impact_lines()
+        return posted_moves
+
     def _split_analytic_financial_lines(self):
         # Cachear modelos analiticos por si hay asignacion automatica sin widget
         dist_models = self.env['account.analytic.distribution.model'].search([('analytic_distribution', '!=', False)])
@@ -176,10 +312,24 @@ class AccountMove(models.Model):
             # 0. Restaurar las líneas originales antes de recalcular
             lines_to_reset = move.line_ids.filtered('is_zero_financial_impact')
             if lines_to_reset:
-                # Quitamos la bandera. Esto debe reactivar los computes nativos
-                # asumiendo que no rompimos el compute manualmente escribiendo 0.
-                lines_to_reset.write({'is_zero_financial_impact': False})
-                # Forzamos re-cálculo para que line.balance y line.amount_currency vuelvan a existir
+                for reset_line in lines_to_reset:
+                    amount_currency = (reset_line.move_id.direction_sign or 1.0) * reset_line.price_subtotal
+                    balance = (
+                        reset_line.company_currency_id.round(amount_currency / reset_line.currency_rate)
+                        if reset_line.currency_rate
+                        else amount_currency
+                    )
+                    reset_line.with_context(
+                        skip_costos_zero_guard=True,
+                        check_move_validity=False,
+                        skip_account_move_synchronization=True,
+                    ).write({
+                        'is_zero_financial_impact': False,
+                        'balance': balance,
+                        'amount_currency': reset_line.currency_id.round(amount_currency),
+                        'debit': balance if balance > 0 else 0.0,
+                        'credit': -balance if balance < 0 else 0.0,
+                    })
                 move.env.flush_all()
 
             # 0. Limpiar fraccionamientos anteriores para evitar duplicados al editar
@@ -205,6 +355,9 @@ class AccountMove(models.Model):
                         if m.analytic_distribution == distribution and m.analytic_distribution_accounts:
                             if hasattr(m, 'costos_uso_id') and m.costos_uso_id and line.costos_uso_id:
                                 if m.costos_uso_id.id != line.costos_uso_id.id:
+                                    continue
+                            if m.analytic_account_id and line.analytic_account_id:
+                                if m.analytic_account_id.id != line.analytic_account_id.id:
                                     continue
                             accounts_mapping = m.analytic_distribution_accounts
                             if isinstance(accounts_mapping, str):
@@ -249,7 +402,10 @@ class AccountMove(models.Model):
                     # 2. SUB-LINEAS CONTABLES DE LA DISTRIBUCION (Se crean con los saldos originales)
                     if isinstance(accounts_mapping, list) and accounts_mapping:
                         # Usar el array detallado que viene del widget
-                        for detail in accounts_mapping:
+                        accumulated_balance = 0.0
+                        accumulated_amount_currency = 0.0
+                        accumulated_price_unit = 0.0
+                        for index, detail in enumerate(accounts_mapping):
                             dict_key = detail.get('analytic_account_ids')
                             percentage = detail.get('percentage', 0.0)
                             fin_account_id = detail.get('account_id')
@@ -261,18 +417,28 @@ class AccountMove(models.Model):
                             ratio = float(percentage) / 100.0
                             new_mapping = [detail] # Guardamos el detalle igual por si acaso
 
-                            cur_balance = company_curr.round(original_balance * ratio)
-                            cur_amount_curr = line_curr.round(original_amount_currency * ratio)
+                            if index == len(accounts_mapping) - 1:
+                                cur_balance = company_curr.round(original_balance - accumulated_balance)
+                                cur_amount_curr = line_curr.round(original_amount_currency - accumulated_amount_currency)
+                                cur_price_unit = line_curr.round(line.price_unit - accumulated_price_unit)
+                            else:
+                                cur_balance = company_curr.round(original_balance * ratio)
+                                cur_amount_curr = line_curr.round(original_amount_currency * ratio)
+                                cur_price_unit = line_curr.round(line.price_unit * ratio)
+                                accumulated_balance += cur_balance
+                                accumulated_amount_currency += cur_amount_curr
+                                accumulated_price_unit += cur_price_unit
 
                             copy_vals = dict(base_copy_vals)
                             copy_vals.update({
                                 'name': line.name,
                                 'quantity': line.quantity,
-                                'price_unit': line.price_unit * ratio,
+                                'price_unit': cur_price_unit,
                                 'account_id': int(fin_account_id),
                                 'analytic_distribution': {str(dict_key): 100.0},
                                 'analytic_distribution_accounts': json.dumps(new_mapping),
                                 'is_analytic_split': True,
+                                'is_imported': True,
                                 'display_type': 'product',
                                 'balance': cur_balance,
                                 'amount_currency': cur_amount_curr,
@@ -282,7 +448,11 @@ class AccountMove(models.Model):
                             commands.append(Command.create(copy_vals))
                     else:
                         # Fallback a diccionario clásico de Odoo si accounts_mapping es dict vacío
-                        for dict_key, percentage in distribution.items():
+                        distribution_items = list(distribution.items())
+                        accumulated_balance = 0.0
+                        accumulated_amount_currency = 0.0
+                        accumulated_price_unit = 0.0
+                        for index, (dict_key, percentage) in enumerate(distribution_items):
                             mapped_acc_id = accounts_mapping.get(dict_key) if isinstance(accounts_mapping, dict) else False
 
                             if isinstance(mapped_acc_id, dict) and 'id' in mapped_acc_id:
@@ -296,18 +466,28 @@ class AccountMove(models.Model):
 
                             new_mapping = {dict_key: mapped_acc_id} if mapped_acc_id else {}
 
-                            cur_balance = company_curr.round(original_balance * ratio)
-                            cur_amount_curr = line_curr.round(original_amount_currency * ratio)
+                            if index == len(distribution_items) - 1:
+                                cur_balance = company_curr.round(original_balance - accumulated_balance)
+                                cur_amount_curr = line_curr.round(original_amount_currency - accumulated_amount_currency)
+                                cur_price_unit = line_curr.round(line.price_unit - accumulated_price_unit)
+                            else:
+                                cur_balance = company_curr.round(original_balance * ratio)
+                                cur_amount_curr = line_curr.round(original_amount_currency * ratio)
+                                cur_price_unit = line_curr.round(line.price_unit * ratio)
+                                accumulated_balance += cur_balance
+                                accumulated_amount_currency += cur_amount_curr
+                                accumulated_price_unit += cur_price_unit
 
                             copy_vals = dict(base_copy_vals)
                             copy_vals.update({
                                 'name': line.name,
                                 'quantity': line.quantity,
-                                'price_unit': line.price_unit * ratio,
+                                'price_unit': cur_price_unit,
                                 'account_id': fin_account_id,
                                 'analytic_distribution': {str(dict_key): 100.0},
                                 'analytic_distribution_accounts': json.dumps(new_mapping),
                                 'is_analytic_split': True,
+                                'is_imported': True,
                                 'display_type': 'product',
                                 'balance': cur_balance,
                                 'amount_currency': cur_amount_curr,
@@ -317,16 +497,21 @@ class AccountMove(models.Model):
                             commands.append(Command.create(copy_vals))
 
                     # 3. ANULACIÓN DE IMPACTO FINANCIERO EN LA LÍNEA ORIGINAL
-                    # Dejamos de forzar balance: 0.0 en BD y permitimos que la bandera
-                    # ejecute los computes nativos de _compute_balance, _compute_debit_credit...
+                    # La bandera conserva la línea visible en factura, pero sus importes contables
+                    # deben quedar blindados en cero durante recomputes y confirmación.
                     line.with_context(
                         check_move_validity=False,
                         skip_account_move_synchronization=True
                     ).write({
                         'is_zero_financial_impact': True,
+                        'debit': 0.0,
+                        'credit': 0.0,
+                        'balance': 0.0,
+                        'amount_currency': 0.0,
                     })
 
             if commands:
                 move.with_context(skip_analytic_split=True, check_move_validity=False).write({
                     'line_ids': commands
                 })
+                move._force_zero_financial_impact_lines()

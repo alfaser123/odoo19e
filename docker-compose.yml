@@ -5,6 +5,8 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_USER: odoo
       POSTGRES_PASSWORD: odoo
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - odoo-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -33,6 +35,21 @@ services:
     command: ["odoo", "-c", "/etc/odoo/odoo.conf"]
     restart: unless-stopped
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:5051:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@odoo19e.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    restart: unless-stopped
+
 volumes:
   odoo-db-data:
   odoo-web-data:
+  pgadmin-data:

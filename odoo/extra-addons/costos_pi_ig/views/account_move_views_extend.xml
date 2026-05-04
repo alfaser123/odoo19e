@@ -12,6 +12,7 @@
             <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='analytic_distribution']" position="before">
                 <field name="allowed_costos_uso_ids" column_invisible="1"/>
                 <field name="costos_uso_id" optional="show" domain="[('id', 'in', allowed_costos_uso_ids)]"/>
+                <field name="analytic_account_id" optional="show" domain="[('company_id', 'in', [parent.company_id, False])]"/>
             </xpath>
             <!-- Agregar la columna invisible en Lineas de Factura -->
             <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='analytic_distribution']" position="after">
@@ -20,6 +21,7 @@
             <xpath expr="//field[@name='filtered_line_ids']/list/field[@name='analytic_distribution']" position="before">
                 <field name="allowed_costos_uso_ids" column_invisible="1"/>
                 <field name="costos_uso_id" optional="show" domain="[('id', 'in', allowed_costos_uso_ids)]"/>
+                <field name="analytic_account_id" optional="show" domain="[('company_id', 'in', [parent.company_id, False])]"/>
             </xpath>
             <!-- Agregar la columna invisible en Apuntes Contables -->
             <xpath expr="//field[@name='filtered_line_ids']/list/field[@name='analytic_distribution']" position="after">

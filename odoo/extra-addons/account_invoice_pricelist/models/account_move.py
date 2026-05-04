@@ -3,8 +3,7 @@
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools import config
-import logging
-_logger = logging.getLogger(__name__)
+
 
 class AccountMove(models.Model):
     _inherit = "account.move"
@@ -38,21 +37,13 @@ class AccountMove(models.Model):
 
     @api.depends("partner_id", "company_id")
     def _compute_pricelist_id(self):
-        # raise UserError('------')
         for invoice in self:
-            a = invoice.is_sale_document()
-            b = invoice.partner_id
-            c = invoice.partner_id.property_product_pricelist
-            d = invoice.move_type
-            if (
-                invoice.partner_id
-                and invoice.is_sale_document()
-                and invoice.partner_id.property_product_pricelist
-            ):
-                invoice.pricelist_id = invoice.partner_id.property_product_pricelist
-            
-            _logger.info("_compute_pricelist_id  %s  %s  %s %s", a, b, c, d)  
-
+            partner = invoice.partner_id.with_company(invoice.company_id)
+            invoice.pricelist_id = (
+                partner.property_product_pricelist
+                if partner and invoice.is_sale_document()
+                else False
+            )
 
     @api.depends("pricelist_id")
     def _compute_currency_id(self):
@@ -63,8 +54,14 @@ class AccountMove(models.Model):
                 and invoice.pricelist_id
                 and invoice.currency_id != invoice.pricelist_id.currency_id
             ):
-                invoice.currency_id = self.pricelist_id.currency_id
+                invoice.currency_id = invoice.pricelist_id.currency_id
         return res
+
+    @api.onchange("partner_id", "pricelist_id")
+    def _onchange_pricelist_id_update_invoice_line_prices(self):
+        for invoice in self:
+            if invoice.state == "draft" and invoice.is_sale_document():
+                invoice.invoice_line_ids._compute_price_unit()
 
     def button_update_prices_from_pricelist(self):
         self.filtered(
@@ -75,11 +72,67 @@ class AccountMove(models.Model):
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
 
+    PRICELIST_PRICE_FIELDS = {
+        "product_id",
+        "product_uom_id",
+        "quantity",
+        "price_unit",
+        "discount",
+        "analytic_distribution",
+        "analytic_distribution_accounts",
+    }
+
+    def _use_invoice_pricelist_price(self):
+        self.ensure_one()
+        return (
+            self.move_id.pricelist_id
+            and self.move_id.is_sale_document(include_receipts=True)
+            and self.display_type == "product"
+            and not self.is_imported
+            and not getattr(self, "is_analytic_split", False)
+        )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        lines = super().create(vals_list)
+        lines_to_update = lines.filtered(
+            lambda line: line._use_invoice_pricelist_price()
+        )
+        if lines_to_update:
+            lines_to_update.with_context(
+                skip_invoice_pricelist_recompute=True
+            )._compute_price_unit()
+        return lines
+
+    def write(self, vals):
+        res = super().write(vals)
+        if (
+            self.PRICELIST_PRICE_FIELDS.intersection(vals)
+            and not self.env.context.get("skip_invoice_pricelist_recompute")
+        ):
+            self.filtered(
+                lambda line: line._use_invoice_pricelist_price()
+            ).with_context(skip_invoice_pricelist_recompute=True)._compute_price_unit()
+        return res
+
     pricelist_item_id = fields.Many2one(
         comodel_name="product.pricelist.item", compute="_compute_pricelist_item_id"
     )
+    price_surcharge = fields.Float(
+        string="Price Surcharge",
+        compute="_compute_price_surcharge",
+        min_display_digits="Product Price",
+    )
 
-    @api.depends("product_id", "product_uom_id", "quantity")
+    @api.depends(
+        "product_id",
+        "product_uom_id",
+        "quantity",
+        "move_id.pricelist_id",
+        "move_id.invoice_date",
+        "move_id.date",
+        "move_id.currency_id",
+    )
     def _compute_pricelist_item_id(self):
         for line in self:
             if (
@@ -96,9 +149,30 @@ class AccountMoveLine(models.Model):
                     date=line._get_move_date(),
                 )
 
+    @api.depends(
+        "pricelist_item_id",
+        "product_id",
+        "product_uom_id",
+    )
+    def _compute_price_surcharge(self):
+        for line in self:
+            line.price_surcharge = 0.0
+            if not line.pricelist_item_id or not line.product_id:
+                continue
+            surcharge = line.pricelist_item_id.price_surcharge
+            if line.product_uom_id and line.product_id.uom_id != line.product_uom_id:
+                surcharge = line.product_id.uom_id._compute_price(
+                    surcharge, line.product_uom_id
+                )
+            line.price_surcharge = surcharge
+
     def _get_move_date(self):
         self.ensure_one()
-        return self.move_id.invoice_date
+        return (
+            self.move_id.invoice_date
+            or self.move_id.date
+            or fields.Date.context_today(self)
+        )
 
     def _calculate_discount(self):
         discount_enabled = self.env[
@@ -130,17 +204,29 @@ class AccountMoveLine(models.Model):
                     # to the customer
                     line.discount = discount
 
-    @api.depends("quantity")
+    @api.depends(
+        "product_id",
+        "product_uom_id",
+        "quantity",
+        "move_id.pricelist_id",
+        "move_id.invoice_date",
+        "move_id.date",
+        "move_id.currency_id",
+        "move_id.fiscal_position_id",
+        "move_id.partner_id",
+    )
     def _compute_price_unit(self):
         res = super()._compute_price_unit()
         for line in self:
             line = line.with_company(line.company_id)
-            if not line.move_id.pricelist_id:
+            if not line._use_invoice_pricelist_price():
                 continue
             if not line.product_uom_id or not line.product_id:
                 line.price_unit = 0.0
+                line.discount = 0.0
             else:
-                price = line._get_display_price()
+                discount = line._get_pricelist_rule_discount()
+                price = line._get_invoice_pricelist_price_before_discount(discount)
                 price_unit = line.product_id._get_tax_included_unit_price_from_price(
                     price,
                     product_taxes=line.product_id.taxes_id.filtered(
@@ -151,7 +237,25 @@ class AccountMoveLine(models.Model):
                 line.with_context(
                     check_move_validity=False
                 ).price_unit = line.currency_id.round(price_unit)
+                line.with_context(check_move_validity=False).discount = discount
         return res
+
+    def _get_pricelist_rule_discount(self):
+        self.ensure_one()
+        rule = self.pricelist_item_id
+        if rule.compute_price == "percentage":
+            return rule.percent_price
+        if rule.compute_price == "formula":
+            return rule.price_discount
+        return 0.0
+
+    def _get_invoice_pricelist_price_before_discount(self, discount):
+        self.ensure_one()
+        price = self._get_pricelist_price()
+        discount_factor = 1 - (discount / 100.0)
+        if discount and discount_factor:
+            price /= discount_factor
+        return price
 
     def _get_display_price(self):
         """Compute the displayed unit price for a given line.

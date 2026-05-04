@@ -168,6 +168,23 @@ class TestAccountMovePricelist(common.TransactionCase):
                 "property_account_position_id": cls.fiscal_position.id,
             }
         )
+        cls.analytic_plan = cls.env["account.analytic.plan"].create(
+            {"name": "Test Analytic Plan"}
+        )
+        cls.analytic_account_1 = cls.env["account.analytic.account"].create(
+            {
+                "name": "Test Analytic Account 1",
+                "plan_id": cls.analytic_plan.id,
+                "company_id": cls.company.id,
+            }
+        )
+        cls.analytic_account_2 = cls.env["account.analytic.account"].create(
+            {
+                "name": "Test Analytic Account 2",
+                "plan_id": cls.analytic_plan.id,
+                "company_id": cls.company.id,
+            }
+        )
         cls.sale_pricelist_fixed_without_discount = cls.ProductPricelist.create(
             {
                 "name": "Test Sale pricelist",
@@ -369,8 +386,8 @@ class TestAccountMovePricelist(common.TransactionCase):
         self.invoice.pricelist_id = self.sale_pricelist_with_discount.id
         self.invoice.button_update_prices_from_pricelist()
         invoice_line = self.invoice.invoice_line_ids[:1]
-        self.assertEqual(invoice_line.price_unit, 90.00)
-        self.assertEqual(invoice_line.discount, 0.00)
+        self.assertEqual(invoice_line.price_unit, 100.00)
+        self.assertEqual(invoice_line.discount, 10.00)
 
     def test_05_account_invoice_without_discount_change_pricelist(self):
         self.env.user.write({"group_ids": [(4, self.group_discount.id)]})
@@ -459,3 +476,124 @@ class TestAccountMovePricelist(common.TransactionCase):
         self.invoice.invoice_line_ids[0].quantity = 0.0
         self.invoice.invoice_line_ids[0].quantity = 1.0
         self.assertEqual(self.invoice.invoice_line_ids[0].discount, 0)
+
+    def test_15_invoice_line_uses_partner_pricelist_on_create(self):
+        invoice = self.AccountMove.create(
+            {
+                "partner_id": self.partner.id,
+                "move_type": "out_invoice",
+                "invoice_line_ids": [
+                    Command.create(
+                        {
+                            "product_id": self.product.product_variant_ids[:1].id,
+                            "name": "Test line",
+                            "quantity": 1.0,
+                        },
+                    ),
+                ],
+            }
+        )
+
+        self.assertEqual(invoice.pricelist_id, self.partner.property_product_pricelist)
+        self.assertEqual(invoice.invoice_line_ids.price_unit, 60.00)
+
+    def test_16_invoice_line_analytic_keeps_partner_pricelist(self):
+        analytic_distribution = {
+            str(self.analytic_account_1.id): 60.0,
+            str(self.analytic_account_2.id): 40.0,
+        }
+        invoice = self.AccountMove.create(
+            {
+                "partner_id": self.partner.id,
+                "move_type": "out_invoice",
+                "invoice_line_ids": [
+                    Command.create(
+                        {
+                            "product_id": self.product.product_variant_ids[:1].id,
+                            "name": "Test line",
+                            "quantity": 1.0,
+                            "price_unit": 100.00,
+                            "analytic_distribution": analytic_distribution,
+                        },
+                    ),
+                ],
+            }
+        )
+
+        self.assertEqual(invoice.invoice_line_ids.price_unit, 60.00)
+
+        invoice.invoice_line_ids.price_unit = 100.00
+        invoice.invoice_line_ids.write(
+            {
+                "analytic_distribution": analytic_distribution,
+            }
+        )
+
+        self.assertEqual(invoice.invoice_line_ids.price_unit, 60.00)
+
+    def test_17_invoice_line_formula_discount_is_visible(self):
+        pricelist = self.ProductPricelist.create(
+            {
+                "name": "Test Formula Discount Pricelist",
+                "item_ids": [
+                    Command.create(
+                        {
+                            "applied_on": "1_product",
+                            "compute_price": "formula",
+                            "base": "list_price",
+                            "price_discount": 10.0,
+                            "price_surcharge": -3.0,
+                            "product_tmpl_id": self.product.id,
+                        },
+                    )
+                ],
+            }
+        )
+        self.invoice.pricelist_id = pricelist
+        self.invoice.button_update_prices_from_pricelist()
+
+        invoice_line = self.invoice.invoice_line_ids[:1]
+
+        self.assertEqual(invoice_line.discount, 10.0)
+        self.assertAlmostEqual(invoice_line.price_unit, 96.67, places=2)
+        self.assertAlmostEqual(invoice_line.price_subtotal, 87.0)
+        self.assertEqual(invoice_line.price_surcharge, -3.0)
+
+    def test_18_invoice_line_tax_included_pricelist_base(self):
+        tax = self.env["account.tax"].create(
+            {
+                "name": "Test Tax Included 20%",
+                "amount_type": "percent",
+                "amount": 20.0,
+                "type_tax_use": "sale",
+                "price_include_override": "tax_included",
+            }
+        )
+        self.product.write({"list_price": 120.0})
+        pricelist = self.ProductPricelist.create(
+            {
+                "name": "Test Tax Included Base Pricelist",
+                "item_ids": [
+                    Command.create(
+                        {
+                            "applied_on": "1_product",
+                            "compute_price": "formula",
+                            "base": "list_price_taxincl",
+                            "taxes_id": [Command.set(tax.ids)],
+                            "price_discount": 10.0,
+                            "price_surcharge": -5.0,
+                            "product_tmpl_id": self.product.id,
+                        },
+                    )
+                ],
+            }
+        )
+        self.invoice.pricelist_id = pricelist
+        self.invoice.button_update_prices_from_pricelist()
+
+        invoice_line = self.invoice.invoice_line_ids[:1]
+
+        self.assertEqual(invoice_line.discount, 10.0)
+        self.assertAlmostEqual(invoice_line.price_unit, 94.44, places=2)
+        self.assertAlmostEqual(invoice_line.price_subtotal, 85.0)
+        self.assertEqual(invoice_line.price_surcharge, -5.0)

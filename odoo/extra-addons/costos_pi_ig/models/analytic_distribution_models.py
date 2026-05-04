@@ -13,6 +13,7 @@ class AccountAnalyticDistributionModel(models.Model):
     def _get_default_search_domain_vals(self):
         vals = super()._get_default_search_domain_vals()
         vals['costos_uso_id'] = False
+        vals['analytic_account_id'] = False
         return vals
 
     # Add any extra behavior if necessary
